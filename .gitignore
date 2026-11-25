@@ -1,3 +1,9 @@
+# My excludes for Python projects
+paper/
+/data/
+/outputs/
+/multirun/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
