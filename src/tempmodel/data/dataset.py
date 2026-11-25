@@ -31,21 +31,42 @@ def period_ending_yesterday(years: int, today: date) -> tuple[date, date]:
     return start.date(), end
 
 
-def check_quality(data: pd.DataFrame, start: date, end: date) -> None:
-    """Check that every day is present and the values are consistent.
-
-    Missing values are logged rather than rejected, since some models lag behind.
-
-    Raises:
-        DataQualityError: If days are missing, repeated or out of order, or if a
-            day's minimum, mean and maximum are not in increasing order.
-    """
+def check_dates(data: pd.DataFrame, start: date, end: date) -> None:
+    """Raise DataQualityError unless every day is present once, in order."""
     if not data.index.equals(pd.date_range(start, end)):
         raise DataQualityError(
             f"expected every day from {start} to {end} exactly once, "
             f"got {len(data)} rows"
         )
 
+
+def drop_unpublished_days(data: pd.DataFrame) -> pd.DataFrame:
+    """Drop the latest days if the source has not published them completely.
+
+    Raises:
+        DataQualityError: If no day is complete.
+    """
+    complete = data.index[data.notna().all(axis=1)]
+    if complete.empty:
+        raise DataQualityError("no day has all its values")
+    published = data.loc[: complete[-1]]
+    n_dropped = len(data) - len(published)
+    if n_dropped:
+        logger.warning(
+            "Dropped the last %d days, not published yet; data ends on %s",
+            n_dropped,
+            complete[-1].date(),
+        )
+    return published
+
+
+def check_values(data: pd.DataFrame) -> None:
+    """Check that the values are consistent, and log any that are missing.
+
+    Raises:
+        DataQualityError: If a day's minimum, mean and maximum are not in
+            increasing order.
+    """
     incomplete = data.index[data.isna().any(axis=1)]
     if len(incomplete):
         logger.warning(
@@ -66,11 +87,16 @@ def check_quality(data: pd.DataFrame, start: date, end: date) -> None:
 
 
 def get_daily_temperature(settings: Settings) -> pd.DataFrame:
-    """Fetch and check daily temperature (deg C), indexed by local date."""
+    """Fetch and check daily temperature (deg C), indexed by local date.
+
+    The data ends yesterday, or on the last day the source has published.
+    """
     today = local_today(settings.location.timezone)
     start, end = period_ending_yesterday(settings.period.years, today)
     data = fetch_daily(settings.api, settings.location, start, end)
-    check_quality(data, start, end)
+    check_dates(data, start, end)
+    data = drop_unpublished_days(data)
+    check_values(data)
     return data
 
 

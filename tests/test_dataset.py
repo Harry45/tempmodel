@@ -1,4 +1,3 @@
-import logging
 from datetime import date
 from pathlib import Path
 
@@ -12,7 +11,9 @@ from tempmodel.data.dataset import (
     MEAN,
     MIN,
     DataQualityError,
-    check_quality,
+    check_dates,
+    check_values,
+    drop_unpublished_days,
     get_daily_temperature,
     load_csv,
     period_ending_yesterday,
@@ -42,34 +43,57 @@ def test_period(years: int, today: date, expected: tuple[date, date]) -> None:
 
 
 def test_good_data_passes_without_warning(caplog: pytest.LogCaptureFixture) -> None:
-    check_quality(make_data(), START, END)
+    check_dates(make_data(), START, END)
+    check_values(make_data())
+    pd.testing.assert_frame_equal(drop_unpublished_days(make_data()), make_data())
     assert not caplog.records
 
 
 def test_missing_day_is_rejected() -> None:
     with pytest.raises(DataQualityError, match="every day"):
-        check_quality(make_data().drop(pd.Timestamp("2026-01-02")), START, END)
+        check_dates(make_data().drop(pd.Timestamp("2026-01-02")), START, END)
 
 
 def test_repeated_day_is_rejected() -> None:
     data = make_data()
     with pytest.raises(DataQualityError, match="every day"):
-        check_quality(pd.concat([data, data.tail(1)]), START, END)
+        check_dates(pd.concat([data, data.tail(1)]), START, END)
 
 
 def test_inconsistent_values_are_rejected() -> None:
     data = make_data()
     data[MIN] = [1.0, 99.0, 3.0]
     with pytest.raises(DataQualityError, match="2026-01-02"):
-        check_quality(data, START, END)
+        check_values(data)
 
 
 def test_missing_values_are_logged(caplog: pytest.LogCaptureFixture) -> None:
     data = make_data()
-    data[MAX] = [8.0, 9.0, None]
-    with caplog.at_level(logging.WARNING):
-        check_quality(data, START, END)
+    data[MAX] = [8.0, None, 9.0]
+    check_values(data)
     assert "1 days have missing values" in caplog.text
+
+
+def test_unpublished_days_are_dropped(caplog: pytest.LogCaptureFixture) -> None:
+    data = make_data()
+    data[MAX] = [8.0, None, None]
+    data[MEAN] = [5.0, 6.0, None]
+    assert len(drop_unpublished_days(data)) == 1
+    assert "Dropped the last 2 days" in caplog.text
+    assert "2026-01-01" in caplog.text
+
+
+def test_gaps_in_the_middle_are_kept() -> None:
+    data = make_data()
+    data[MEAN] = [5.0, None, 7.0]
+    assert len(drop_unpublished_days(data)) == 3
+
+
+def test_data_without_a_complete_day_is_rejected() -> None:
+    data = make_data()
+    data[MAX] = None
+    with pytest.raises(DataQualityError, match="no day"):
+        drop_unpublished_days(data)
 
 
 def test_get_daily_temperature_requests_the_right_period(
