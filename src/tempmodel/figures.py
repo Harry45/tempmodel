@@ -1,4 +1,4 @@
-"""Figures 1 to 6 of Benth & Šaltytė Benth (2007), and a forecast figure.
+"""Figures 1 to 8 of Benth & Šaltytė Benth (2007), and a forecast figure.
 
 Every function takes a ``style``, and draws a new figure of size ``figsize``.
 Those with a single panel can instead draw on an existing ``ax``.
@@ -28,6 +28,7 @@ DEFAULT_STYLE = PlotStyle()
 # Details of drawing that should not need changing.
 CURVE_POINTS = 400
 BAR_GAP_WIDTH = 0.5
+MONTH_BAR_WIDTH = 0.8
 LAG_AXIS_MARGIN = 0.015  # so that lag 1 clears the axis
 
 
@@ -235,6 +236,90 @@ def plot_forecast(
         _plot_fit(panel, forecast.index, forecast["mean"], "Forecast mean", style)
         panel.set(title=f"Forecast for the next {len(forecast)} days", ylabel="°C")
         _legend_above(panel, columns=4)
+    return _figure_of(panel)
+
+
+def plot_hdd_curve(
+    seasonal: pd.Series,
+    constant: pd.Series,
+    *,
+    ax: Axes | None = None,
+    figsize: Size = (8, 4),
+    style: PlotStyle = DEFAULT_STYLE,
+) -> Figure:
+    """Figure 7: HDD futures prices, with seasonal and with constant volatility.
+
+    Args:
+        seasonal: Prices by delivery month, with seasonal volatility.
+        constant: The same with constant volatility.
+        ax: Panel to draw on, instead of a new figure.
+        figsize: Size of a new figure.
+        style: Colours and line widths.
+    """
+    with style.applied():
+        panel = _panel(ax, figsize, style)
+        x = np.arange(len(seasonal))
+        left, right = x - MONTH_BAR_WIDTH / 2, x + MONTH_BAR_WIDTH / 2
+        panel.hlines(
+            constant,
+            left,
+            right,
+            color=style.ink,
+            linestyles="--",
+            linewidth=style.fit_width,
+            label="Constant volatility",
+        )
+        panel.hlines(
+            seasonal,
+            left,
+            right,
+            color=style.fit_color,
+            linewidth=style.fit_width,
+            label="Seasonal volatility",
+        )
+        months = pd.DatetimeIndex(seasonal.index).strftime("%b\n%Y")
+        panel.set_xticks(x, list(months))
+        panel.set_ylim(bottom=0)
+        panel.grid(visible=False, axis="x")
+        panel.set(title="Figure 7. HDD futures curve", ylabel="HDD index points")
+        _legend_above(panel, columns=2)
+    return _figure_of(panel)
+
+
+def plot_cat_volatility(
+    volatility: Sequence[pd.Series],
+    *,
+    ax: Axes | None = None,
+    figsize: Size = (8, 4),
+    style: PlotStyle = DEFAULT_STYLE,
+) -> Figure:
+    """Figure 8: daily volatility of CAT futures up to delivery.
+
+    Each Series is the output of ``cat_volatility`` for one delivery month, and is
+    labelled with that month.
+    """
+    with style.applied():
+        panel = _panel(ax, figsize, style)
+        for series in volatility:
+            panel.plot(
+                series.index, series, color=style.fit_color, linewidth=style.fit_width
+            )
+            delivery = series.index[-1] + pd.Timedelta(days=1)
+            panel.annotate(
+                delivery.strftime("%b"),
+                (series.index[-1], series.iloc[-1]),
+                xytext=(0, 4),
+                textcoords="offset points",
+                ha="center",
+                color=style.muted_ink,
+                fontsize="small",
+            )
+        panel.set(
+            title="Figure 8. Volatility of CAT futures",
+            ylabel="CAT index points per day",
+        )
+        panel.margins(y=0.1)  # room for the labels
+        panel.set_ylim(bottom=0)
     return _figure_of(panel)
 
 

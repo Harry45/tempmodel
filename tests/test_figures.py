@@ -3,6 +3,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import pytest
 from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
@@ -53,6 +54,24 @@ def test_plot_forecast_draws(model: TemperatureModel, result: FitResult) -> None
     lines = fig.axes[0].lines
     assert len(lines) == 7
     assert len(np.asarray(lines[0].get_xdata())) == 30
+
+
+def test_hdd_curve_draws_both_prices() -> None:
+    months = pd.date_range("2027-01-01", periods=3, freq="MS")
+    seasonal = pd.Series([400.0, 300, 200], index=months)
+    fig = figures.plot_hdd_curve(seasonal, seasonal - 20)
+    fig.canvas.draw()
+    labels = [label.get_text() for label in fig.axes[0].get_xticklabels()]
+    assert labels == ["Jan\n2027", "Feb\n2027", "Mar\n2027"]
+    assert len(fig.axes[0].collections) == 2
+
+
+def test_cat_volatility_labels_the_delivery_month() -> None:
+    dates = pd.date_range("2026-12-01", "2027-01-31")
+    volatility = pd.Series(range(len(dates)), index=dates, dtype=float)
+    fig = figures.plot_cat_volatility([volatility])
+    fig.canvas.draw()
+    assert [text.get_text() for text in fig.axes[0].texts] == ["Feb"]
 
 
 def test_years_limits_the_history(result: FitResult) -> None:
