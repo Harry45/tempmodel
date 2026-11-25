@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from tempmodel import figures
+from tempmodel.backtest import backtest
 from tempmodel.config import Settings, load_settings
 from tempmodel.model import TemperatureModel
 
@@ -47,6 +48,7 @@ def test_overrides_are_applied() -> None:
         "forecast.n_samples=0",
         "forecast.seed=-1",
         "api.retry_backoff_seconds=-1",
+        "backtest.min_years=2",
         "plots.bins=0",
         "plots.bins=2.5",
         "plots.bins=many",
@@ -90,6 +92,9 @@ def test_config_agrees_with_the_defaults_in_the_code() -> None:
         assert getattr(model, name) == default(TemperatureModel, name)
     assert forecast.level == default(TemperatureModel.predict, "level")
     assert forecast.n_samples == default(TemperatureModel.sample, "n_samples")
+    assert settings.backtest.min_years == default(backtest, "min_years")
+    assert forecast.n_days == default(backtest, "n_days")
+    assert forecast.level == default(backtest, "level")
     assert plots.history_years == default(figures.plot_seasonal_mean, "years")
     for histogram in (
         figures.plot_deviation_histogram,

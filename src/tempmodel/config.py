@@ -19,6 +19,8 @@ from pydantic import (
     model_validator,
 )
 
+from tempmodel.model.validation import MIN_YEARS
+
 VariableName = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$")]
 PositiveStrictInt = Annotated[int, Field(strict=True, gt=0)]
 Probability = Annotated[float, Field(gt=0, lt=1)]
@@ -98,6 +100,12 @@ class ForecastSettings(_Base):
     seed: Annotated[int, Field(strict=True, ge=0)]
 
 
+class BacktestSettings(_Base):
+    """How to check past forecasts."""
+
+    min_years: Annotated[int, Field(strict=True, ge=MIN_YEARS)]
+
+
 class PlotSettings(_Base):
     """What the figures show; their appearance is in ``PlotStyle``."""
 
@@ -118,6 +126,7 @@ class Settings(_Base):
     output: OutputSettings
     model: ModelSettings
     forecast: ForecastSettings
+    backtest: BacktestSettings
     plots: PlotSettings
 
     @model_validator(mode="after")
