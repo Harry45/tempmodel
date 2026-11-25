@@ -89,15 +89,39 @@ settings = load_settings(["period.years=20"])
 TemperatureModel(seasonal_harmonics=2, variance_harmonics=3, trend=False)
 ```
 
+## Backtest
+
+```python
+from tempmodel.backtest import backtest, summarise
+
+summarise(backtest(temperature, model))
+```
+
+This forecasts from the first day of each past month, using only earlier data, and
+compares with what happened. On data up to 24 November 2026, over 48 forecasts of 365
+days:
+
+| | |
+|---|---|
+| Days inside the 95% interval | 93% |
+| Error (RMSE), one day ahead | 1.75 °C |
+| Error (RMSE), over the year | 2.94 °C |
+| Bias (positive: warmer than forecast) | +0.36 °C |
+
 ## Limitations
 
-- **Trend.** Ten years is too short to estimate it well. For London it comes out near
-  1.5 °C per decade, which is too steep to trust, and makes the forecast for the next
-  year about 0.8 °C warmer than with no trend. Use `trend=False` to leave it out.
+- **Trend.** Ten years is too short to estimate climate change. For London it comes
+  out near 1.5 °C per decade, partly because the data source changed. It is kept
+  because it helps the forecast: without it, forecasts tend to be too cold. Use
+  `trend=False` to leave it out.
 - **Data.** Values come from weather models, not a station. Open-Meteo's default
   source changes over time, with a small step at the start of 2025.
 - **Interval.** It is where each day's temperature should fall. It leaves out
-  uncertainty in the parameters. In a backtest on London, the 95% interval contained
-  93% of days.
+  uncertainty in the parameters.
 - **Short-term dependence.** The residuals are still slightly correlated over the
-  first two days. The paper finds the same and suggests a higher-order model.
+  first two days. The paper suggests a higher-order model, but for London extra lags
+  lowered the one-day error by only about 1%.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Weather data by [Open-Meteo](https://open-meteo.com/).
