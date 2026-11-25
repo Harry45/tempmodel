@@ -1,7 +1,7 @@
 # tempmodel
 
 A model of daily temperature that forecasts the mean, a prediction interval and
-sample paths for the days ahead.
+sample paths for the days ahead, and prices futures and options on temperature.
 
 
 ## Setup
@@ -14,8 +14,11 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-Then open `playground.ipynb` with the `.venv` kernel. It goes through the model one
-equation at a time and reproduces the paper's Figures 1 to 6 for London.
+Then open a notebook with the `.venv` kernel:
+
+- `playground.ipynb` goes through the model one equation at a time, with the paper's
+  Figures 1 to 6 for London.
+- `pricing.ipynb` prices futures and options, with Figures 7 and 8.
 
 ## The model
 
@@ -74,6 +77,33 @@ figures.plot_forecast(result, forecast, samples)
 
 All take `figsize` and `style`.
 
+## Pricing
+
+Futures on HDD, CDD, CAT and PRIM, as of the last day of data, in index points:
+
+```python
+from datetime import timedelta
+
+from tempmodel.pricing import Pricer, next_months
+
+pricer = Pricer(result, market_price_of_risk=0.0, interest_rate=0.0)
+months = next_months(pricer.valuation_date, 12)
+
+pricer.futures_curve(months)  # a row per month, a column per index
+pricer.cat_volatility(months[2])  # for each day up to delivery
+pricer.option_price(
+    "HDD",
+    "call",
+    months[2],
+    strike=330,
+    exercise=months[2].start - timedelta(days=1),
+)
+```
+
+The market price of risk and the interest rate are assumptions, as there are no market
+quotes here to fit them to. Prices use the daily model, with sums in place of the
+paper's integrals, because contracts settle on daily values.
+
 ## Settings
 
 The location, number of years and model options are in
@@ -114,6 +144,12 @@ days:
   out near 1.5 °C per decade, partly because the data source changed. It is kept
   because it helps the forecast: without it, forecasts tend to be too cold. Use
   `trend=False` to leave it out.
+- **Prices.** HDD prices depend strongly on the trend. For London the next 12 months
+  add up to about 2160 with it and 2410 without it. The past average is 2435 and the
+  latest 12 months 2110 (data up to 24 November 2026).
+- **Figure 7.** The paper reports that seasonal volatility nearly doubles summer HDD
+  prices. Here it lowers them, as it does with the paper's own parameters in July and
+  August. See `pricing.ipynb`.
 - **Data.** Values come from weather models, not a station. Open-Meteo's default
   source changes over time, with a small step at the start of 2025.
 - **Interval.** It is where each day's temperature should fall. It leaves out
