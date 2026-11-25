@@ -11,6 +11,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    FiniteFloat,
     HttpUrl,
     NonNegativeFloat,
     PositiveFloat,
@@ -117,6 +118,15 @@ class PlotSettings(_Base):
     recent_days: PositiveStrictInt
 
 
+class PricingSettings(_Base):
+    """How to price futures and options."""
+
+    n_months: PositiveStrictInt
+    base_temperature: FiniteFloat
+    market_price_of_risk: FiniteFloat
+    interest_rate: FiniteFloat
+
+
 class Settings(_Base):
     """All settings."""
 
@@ -128,6 +138,7 @@ class Settings(_Base):
     forecast: ForecastSettings
     backtest: BacktestSettings
     plots: PlotSettings
+    pricing: PricingSettings
 
     @model_validator(mode="after")
     def _column_is_downloaded(self) -> Self:

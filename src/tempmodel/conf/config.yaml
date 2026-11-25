@@ -49,6 +49,13 @@ plots:
   n_paths: 3  # sample paths drawn on the forecast
   recent_days: 180  # data drawn before the forecast
 
+pricing:
+  n_months: 12
+  base_temperature: 18  # for HDD and CDD; 18 °C in Europe, 65 °F (18.3 °C) in the US
+  # Both are assumptions, as there are no market quotes to fit them to.
+  market_price_of_risk: 0  # °C per day
+  interest_rate: 0  # per year, continuously compounded
+
 hydra:
   run:
     dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

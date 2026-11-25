@@ -9,6 +9,7 @@ from tempmodel import figures
 from tempmodel.backtest import backtest
 from tempmodel.config import Settings, load_settings
 from tempmodel.model import TemperatureModel
+from tempmodel.pricing import Pricer, next_months, realised_indices
 
 
 def test_shipped_config_is_valid() -> None:
@@ -57,6 +58,9 @@ def test_overrides_are_applied() -> None:
         "plots.level=1",
         "plots.n_paths=0",
         "plots.recent_days=0",
+        "pricing.n_months=0",
+        "pricing.base_temperature=warm",
+        "pricing.interest_rate=.nan",
     ],
 )
 def test_invalid_values_are_rejected(override: str) -> None:
@@ -95,6 +99,11 @@ def test_config_agrees_with_the_defaults_in_the_code() -> None:
     assert settings.backtest.min_years == default(backtest, "min_years")
     assert forecast.n_days == default(backtest, "n_days")
     assert forecast.level == default(backtest, "level")
+    pricing = settings.pricing
+    assert pricing.n_months == default(next_months, "n_months")
+    for name in ("base_temperature", "market_price_of_risk", "interest_rate"):
+        assert getattr(pricing, name) == default(Pricer, name)
+    assert pricing.base_temperature == default(realised_indices, "base_temperature")
     assert plots.history_years == default(figures.plot_seasonal_mean, "years")
     for histogram in (
         figures.plot_deviation_histogram,
