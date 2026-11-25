@@ -3,14 +3,14 @@ import pandas as pd
 import pytest
 
 from tempmodel.model import FitResult, TemperatureModel
-from tests import stockholm
+from tests import simulated_stockholm
 
 mpl.use("Agg")
 
 
 @pytest.fixture(scope="session")
 def temperature() -> pd.Series:
-    return stockholm.simulate()
+    return simulated_stockholm.simulate()
 
 
 @pytest.fixture(scope="session")

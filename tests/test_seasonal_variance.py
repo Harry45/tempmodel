@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from tempmodel.model import SeasonalVariance
-from tests import stockholm
+from tests import simulated_stockholm
 
 T = np.arange(200 * 365)
 DAYS = np.arange(365)
@@ -11,9 +11,11 @@ DAYS = np.arange(365)
 def test_recovers_the_papers_variance() -> None:
     noise = np.random.default_rng(0).standard_normal(len(T))
     variance = SeasonalVariance.fit(
-        T, noise * np.sqrt(stockholm.daily_variance(T)), harmonics=4
+        T, noise * np.sqrt(simulated_stockholm.daily_variance(T)), harmonics=4
     )
-    np.testing.assert_allclose(variance(DAYS), stockholm.daily_variance(DAYS), rtol=0.1)
+    np.testing.assert_allclose(
+        variance(DAYS), simulated_stockholm.daily_variance(DAYS), rtol=0.1
+    )
 
 
 def test_empirical_is_the_variance_of_each_day_of_the_year() -> None:

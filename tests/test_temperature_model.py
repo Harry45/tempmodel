@@ -6,7 +6,7 @@ import pytest
 from scipy import stats
 
 from tempmodel.model import FitResult, NotFittedError, TemperatureModel
-from tests import stockholm
+from tests import simulated_stockholm
 
 
 def test_uses_as_many_records_as_the_paper(result: FitResult) -> None:
@@ -15,16 +15,16 @@ def test_uses_as_many_records_as_the_paper(result: FitResult) -> None:
 
 def test_recovers_the_papers_parameters(result: FitResult) -> None:
     parameters = result.parameters()
-    assert parameters["a"] == pytest.approx(stockholm.A, abs=0.4)
-    assert parameters["b"] == pytest.approx(stockholm.B, abs=0.00005)
-    assert parameters["b1"] == pytest.approx(stockholm.B1, abs=0.3)
-    assert parameters["g1"] == pytest.approx(stockholm.G1, abs=2)
-    assert parameters["alpha"] == pytest.approx(stockholm.ALPHA, abs=0.015)
+    assert parameters["a"] == pytest.approx(simulated_stockholm.A, abs=0.4)
+    assert parameters["b"] == pytest.approx(simulated_stockholm.B, abs=0.00005)
+    assert parameters["b1"] == pytest.approx(simulated_stockholm.B1, abs=0.3)
+    assert parameters["g1"] == pytest.approx(simulated_stockholm.G1, abs=2)
+    assert parameters["alpha"] == pytest.approx(simulated_stockholm.ALPHA, abs=0.015)
     assert parameters["kappa"] == pytest.approx(0.194, abs=0.02)
     assert parameters["residual_std"] == pytest.approx(2.04, abs=0.05)
     days = np.arange(365)
     np.testing.assert_allclose(
-        result.variance(days), stockholm.daily_variance(days), rtol=0.2
+        result.variance(days), simulated_stockholm.daily_variance(days), rtol=0.2
     )
 
 
